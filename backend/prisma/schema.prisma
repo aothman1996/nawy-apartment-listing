@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Apartment {
+  id          String   @id @default(cuid())
+  unitName    String   @map("unit_name")
+  unitNumber  String   @map("unit_number")
+  project     String
+  price       Decimal  @db.Decimal(10, 2)
+  bedrooms    Int
+  bathrooms   Int
+  areaSqft    Int      @map("area_sqft")
+  location    String
+  description String?
+  images      String[] @default([])
+  amenities   String[] @default([])
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([unitNumber, project])
+  @@map("apartments")
+  @@index([unitName, unitNumber, project])
+  @@index([price])
+  @@index([location])
+  @@index([bedrooms])
+  @@index([bathrooms])
+  @@index([isAvailable])
+  @@index([createdAt])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+

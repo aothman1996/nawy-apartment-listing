@@ -1,0 +1,67 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: nawy-postgres
+    environment:
+      POSTGRES_DB: nawy_db
+      POSTGRES_USER: nawy_user
+      POSTGRES_PASSWORD: nawy_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nawy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nawy_user -d nawy_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nawy-backend
+    environment:
+      DATABASE_URL: postgresql://nawy_user:nawy_password@postgres:5432/nawy_db
+      PORT: 5005
+      NODE_ENV: production
+      DOCKER_ENV: "true"
+    ports:
+      - "5005:5005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nawy-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5005/api/v1
+    container_name: nawy-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5005/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - nawy-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  nawy-network:
+    driver: bridge
+
